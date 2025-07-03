@@ -3,155 +3,112 @@ import time
 import random
 import json
 from tomori_chat import chat_logic
+import os
+from pathlib import Path
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from gradio.routes import mount_gradio_app
+
+app = FastAPI()
 
 
-live2d_model_path = "live2d_model/tomori/model.json"
+live2d_html_iframe = '<iframe src="/static/live2d_view.html" width="100%" height="600" style="border:none; border-radius: 12px;"></iframe>'
 
-html_code = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Live2D Tomori</title>
-    <style>
-        body, html {{
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: transparent;
-        }}
-        #live2d-canvas {{
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            left: 0;
-            top: 0;
-        }}
-    </style>
-</head>
-<body>
-    <canvas id="live2d-canvas"></canvas>
+js_library = """
+<script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+"""
 
-    <!-- 引入 Live2D Cubism SDK for Web -->
-    <script src="js/live2dcubismcore.min.js"></script>
-    <script src="js/pixi.min.js"></script>
-    <script src="js/pixi-live2d-display.min.js"></script>
+js_library_imports = """
+<script src="/static/js/live2d.min.js"></script>
+<script src="/static/js/live2dcubismcore.min.js"></script>
+<script src="/static/js/pixi.min.js"></script>
+<script src="/static/js/index.min.js"></script>
+<script src="/static/js/logic.js"></script>
+"""
 
-    <script>
-        const modelPath = "{live2d_model_path}";
+live2d_html_code = """
+<div id="live2d-container" style="width:100%; height:500px; position:relative;">
+  <canvas id="live2d-canvas" style="position:absolute; width:100%; height:100%; left:0; top:0;"></canvas>
+</div>
 
-        (async function() {{
-            const app = new PIXI.Application({{
-                view: document.getElementById('live2d-canvas'),
-                autoStart: true,
-                resizeTo: window,
-                backgroundAlpha: 0,
-            }});
+<script type="text/javascript">
+(async function () {
+    // 动态加载 PIXI 和 Cubism2 脚本
+    const loadScript = (src) => new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
+    });
+    await loadScript("https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js");
+    await loadScript("https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js");
+    await loadScript("https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js");
 
-            const model = await PIXI.live2d.Live2DModel.from(modelPath);
-            app.stage.addChild(model);
+    // 模型加载
+    const modelPath = "/static/live2d_model/tomori/model.json";
+    const app = new PIXI.Application({
+        view: document.getElementById('live2d-canvas'),
+        autoStart: true,
+        resizeTo: window,
+        backgroundAlpha: 0,
+    });
 
-            // 调整模型大小和位置
-            model.scale.set(0.25); // 根据你的模型大小调整
-            model.anchor.set(0.5, 0.5);
+    const model = await PIXI.live2d.Live2DModel.from(modelPath, { cubism2: true });
+    app.stage.addChild(model);
 
-            function onResize() {{
-                model.position.set(window.innerWidth / 2, window.innerHeight / 1.8);
-            }}
-            window.addEventListener('resize', onResize);
-            onResize();
+    model.scale.set(0.25);
+    model.anchor.set(0.5, 0.5);
+    model.position.set(window.innerWidth / 2, window.innerHeight / 1.8);
 
-            // 存储动作和表情
-            const motions = {{}};
-            const expressions = {{}};
+    console.log("✅ Cubism2 模型加载成功");
 
-            model.on('load', () => {{
-                // 加载所有动作
-                Object.keys(model.motions).forEach(group => {{
-                    model.motions[group].forEach((motion, i) => {{
-                        const motionName = `${{group}}_${{i}}`;
-                        motions[motionName] = motion;
-                    }});
-                }});
+    // 自动测试一个动作（可删）
+    setTimeout(() => {
+        model.motion("thinking02", 0, PIXI.live2d.MotionPriority.FORCE);
+    }, 1000);
 
-                // 加载所有表情
-                Object.keys(model.expressions).forEach((name, i) => {{
-                    expressions[name] = model.expressions[name];
-                }});
+    // 尝试绑定 Gradio 的 Textbox textarea（必须等 DOM 完成）
+    const tryBindCommandListener = () => {
+        const wrapper = document.querySelector('#live2d_command_stream');
+        if (!wrapper) return console.warn("⚠ #live2d_command_stream wrapper not found");
 
-                console.log("Live2D Model loaded.", {{ motions, expressions }});
-            }});
-            
-            // 核心功能：监听来自 Gradio 的指令
-        function handleCommand(command) {{
-            // 确保 command 对象存在且包含 live2d_motion 属性
-            if (!command || !command.live2d_motion) {{
-                console.warn("Received invalid command or missing 'live2d_motion' property:", command);
-                if (model) {{
-                    // 如果模型已加载，尝试恢复默认表情或播放空闲动作
-                    model.expression(null); 
-                    // 也可以明确播放 idle01 动作，如果模型有这个动作组
-                    // if (model.motions && model.motions.idle01) {{
-                    //     model.motion('idle01', 0, PIXI.live2d.MotionPriority.NORMAL);
-                    // }}
-                }}
-                return;
-            }}
-        
-            console.log("Received command from Gradio:", command);
-            const motionToPlay = command.live2d_motion; // 从 Gradio 获取的动作名称
-        
-            if (model) {{ // 确保 Live2D 模型已经加载
-                // 直接使用从 Gradio 接收到的动作文件名（不含.mtn后缀）来尝试播放动作。
-                // PIXI.live2d.Live2DModel.from() 通常会将 .mtn 文件名作为可直接调用的动作键。
-                // 第一个参数是动作的名称（例如 'angry01'）。
-                // 第二个参数是动作在组中的索引（这里我们设为0，因为我们假设它是直接的动作名）。
-                // 第三个参数是优先级，FORCE 表示强制播放，会打断当前低优先级的动作。
-                if (model.motion(motionToPlay, 0, PIXI.live2d.MotionPriority.FORCE)) {{
-                    console.log(`Playing Live2D motion: ${{motionToPlay}}`);
-                }} else {{
-                    // 如果指定的动作不存在，打印警告并尝试恢复默认
-                    console.warn(`Motion '${{motionToPlay}}' not found or failed to play. Falling back to idle.`);
-                    // 如果你有一个特定的默认空闲动作，可以尝试播放
-                    if (model.motions && Object.keys(model.motions).includes('idle01')) {{ // 检查是否有 'idle01' 这个动作组
-                         model.motion('idle01', 0, PIXI.live2d.MotionPriority.NORMAL);
-                    }} else {{
-                        model.expression(null); // 最保险的方法是恢复默认表情
-                    }}
-                }}
-            }} else {{
-                console.warn("Live2D model not yet loaded, cannot play motion:", motionToPlay);
-            }}
-        }}
+        const textarea = wrapper.querySelector('textarea');
+        if (!textarea) return console.warn("⚠ textarea not found inside wrapper");
 
-            // 使用 MutationObserver 监听 Gradio UI 中隐藏元素的变化
-            // 这是 Gradio 前后端通信的常用技巧
-            const targetNode = window.parent.document.querySelector('#live2d_command_stream');
-            if (targetNode) {{
-                const observer = new MutationObserver(mutationsList => {{
-                    for(let mutation of mutationsList) {{
-                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {{
-                            const commandText = mutation.addedNodes[0].textContent;
-                            try {{
-                                const command = JSON.parse(commandText);
-                                handleCommand(command);
-                            }} catch (e) {{
-                                console.error("Failed to parse command:", commandText, e);
-                            }}
-                        }}
-                    }}
-                }});
-                observer.observe(targetNode, {{ childList: true }});
-                console.log("Observer attached to #live2d_command_stream");
-            }} else {{
-                console.error("#live2d_command_stream not found in parent document.");
-            }}
-        }})();
-    </script>
-</body>
-</html>
+        console.log("✅ Live2D 指令监听器绑定成功");
+
+        textarea.addEventListener('input', () => {
+            const val = textarea.value?.trim();
+            if (!val) return;
+            try {
+                const command = JSON.parse(val);
+                if (command.live2d_motion) {
+                    console.log("🎬 执行动作：", command.live2d_motion);
+                    model.motion(command.live2d_motion, 0, PIXI.live2d.MotionPriority.FORCE);
+                }
+            } catch (e) {
+                console.error("❌ 无法解析指令：", val, e);
+            }
+        });
+    };
+
+    // 等待 Gradio 渲染完成后尝试绑定 textarea
+    let retries = 0;
+    const pollInterval = setInterval(() => {
+        tryBindCommandListener();
+        retries++;
+        if (document.querySelector('#live2d_command_stream textarea') || retries > 20) {
+            clearInterval(pollInterval);
+        }
+    }, 500);
+})();
+</script>
 """
 
 # ==============================================================================
@@ -165,16 +122,18 @@ with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color:
     with gr.Row():
         with gr.Column(scale=1):
             # 用于显示 Live2D 模型的 HTML 组件
-            live2d_viewer = gr.HTML(html_code)
+
+            live2d_viewer = gr.HTML(live2d_html_iframe)
 
             # 用于从后端向前端JS传递指令的隐藏组件
             live2d_command_stream = gr.Textbox(
                 "",
                 elem_id="live2d_command_stream",
-                visible=False
+                visible=True
             )
 
         with gr.Column(scale=1):
+
             chatbot = gr.Chatbot(
                 [],
                 elem_id="chatbot",
@@ -191,19 +150,34 @@ with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color:
     def predict(query, history):
         history.append([query, None])
         # 预先更新UI，显示用户输入
-        yield history, ""
+        yield history, json.dumps({})
 
         # 流式处理聊天逻辑
         response = ""
         for resp, command in chat_logic(query, history[:-1]):
             response = resp
             history[-1][1] = response
+            if not isinstance(command, str):
+                command = json.dumps(command)
+            else:
+                try:
+                    json.loads(command)
+                except Exception as e:
+                    print("❌ 非法 JSON 指令，强制回退:", command)
+                    command = json.dumps({})
             # 流式更新聊天气泡和发送指令
+            print("✅ 向前端发送指令：", command)
             yield history, command
 
 
     chat_input.submit(predict, [chat_input, chatbot], [chatbot, live2d_command_stream])
 
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+app = mount_gradio_app(app, demo, path="/")
+
 if __name__ == "__main__":
     # 允许从本地文件系统加载 Live2D 模型
-    demo.launch(share=False,allowed_paths=["live2d_model", "js"])
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=7860)
