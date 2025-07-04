@@ -58,19 +58,15 @@ def create_qa_database(qa_data, db_path="./chroma_db", collection_name="qa_colle
     print(f"当前集合 '{collection_name}' 中的文档数量: {collection.count()}")
 
 
-# --- 示例用法 (与之前相同) ---
+
 if __name__ == "__main__":
     with open('data/rag_data.json','r',encoding='utf-8') as f:
         my_qa_data = json.load(f)
 
-    # 每次运行都会清空并重新创建
+
     create_qa_database(my_qa_data, overwrite_existing=True)
 
-    # 如果你不想每次都清空，可以这样调用：
-    # create_qa_database(my_qa_data, overwrite_existing=False)
-    # 此时，如果ID重复，会覆盖；如果ID不重复，会追加。
 
-    # --- 简单的查询示例 (与之前相同) ---
     print("\n--- 进行一个简单的查询 ---")
     client = chromadb.PersistentClient(path="./chroma_db")
     collection = client.get_collection(

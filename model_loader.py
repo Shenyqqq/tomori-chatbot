@@ -1,4 +1,3 @@
-# 示例以transformers为基础，你可替换为自己的推理代码
 from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStreamer
 import torch
 from threading import Thread

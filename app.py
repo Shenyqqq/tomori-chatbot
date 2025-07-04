@@ -14,21 +14,19 @@ app = FastAPI()
 
 live2d_html_iframe = '<iframe src="/static/live2d_view.html" width="100%" height="600" style="border:none; border-radius: 12px;"></iframe>'
 
-js_library = """
+js_library_stored = """
+<script src="/static/js/live2d.min.js"></script>
+<script src="/static/js/live2dcubismcore.min.js"></script>
+<script src="/static/js/pixi.min.js"></script>
+<script src="/static/js/index.min.js"></script>
+<script src="/static/js/logic.js"></script>
+
 <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
 <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
-"""
-
-js_library_imports = """
-<script src="/static/js/live2d.min.js"></script>
-<script src="/static/js/live2dcubismcore.min.js"></script>
-<script src="/static/js/pixi.min.js"></script>
-<script src="/static/js/index.min.js"></script>
-<script src="/static/js/logic.js"></script>
 """
 
 js_script = """
@@ -135,7 +133,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color:
             live2d_command_stream = gr.Textbox(
                 "",
                 elem_id="live2d_command_stream",
-                visible=True
+                visible=False
             )
 
         with gr.Column(scale=1):
@@ -186,7 +184,7 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app = mount_gradio_app(app, demo, path="/")
 
 if __name__ == "__main__":
-    # 允许从本地文件系统加载 Live2D 模型
+
     import uvicorn
 
     uvicorn.run(app, host="127.0.0.1", port=7860)
