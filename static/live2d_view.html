@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Live2D Tomori Viewer</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent; }
+        #live2d-canvas { position: absolute; width: 100%; height: 100%; left: 0; top: 0; }
+    </style>
+</head>
+<body>
+    <canvas id="live2d-canvas"></canvas>
+		
+	<script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
+
+    <script>
+        // 在外部先声明 model
+let model = null;
+
+// 加载 Cubism2 模型（此部分你已完成）
+(async function () {
+    const modelPath = "/static/live2d_model/tomori/model.json";
+    const app = new PIXI.Application({
+        view: document.getElementById('live2d-canvas'),
+        autoStart: true,
+        resizeTo: window,
+        backgroundAlpha: 0,
+    });
+
+    model = await PIXI.live2d.Live2DModel.from(modelPath, { cubism2: true });
+    app.stage.addChild(model);
+
+    model.scale.set(0.25);
+    model.anchor.set(0.5, 0.5);
+    model.position.set(window.innerWidth / 2, window.innerHeight / 1.8);
+
+    console.log("✅ Cubism2 模型加载成功");
+
+    // 自动播放一个动作测试（可选）
+    setTimeout(() => {
+        model.motion("thinking02", 0, PIXI.live2d.MotionPriority.FORCE);
+    }, 1000);
+
+    // 绑定监听 Live2D 指令流
+    setupLive2DCommandListener();
+})();
+
+function setupLive2DCommandListener() {
+    window.addEventListener('message', (event) => {
+        // 安全提示：在生产环境中，您应该检查 event.origin，确保消息来自可信的源
+        // 例如: if (event.origin !== 'http://127.0.0.1:7860') return;
+
+        console.log("[iFrame] 收到消息:", event.data);
+        const commandText = event.data;
+        if (!commandText || typeof commandText !== 'string') return;
+
+        try {
+            // 解析收到的 JSON 字符串指令
+            const command = JSON.parse(commandText);
+            console.log("🎬 [iFrame] 执行动作:", command.live2d_motion);
+            // 调用您已有的指令处理函数
+            handleLive2DMotionCommand(command);
+        } catch (e) {
+            console.error("❌ [iFrame] 指令 JSON 解析失败", e, "原始内容:", commandText);
+        }
+    }, false);
+
+    console.log("✅ [iFrame] 指令监听器已就绪，等待消息...");
+}
+
+// ✅ 指令处理函数：用于执行 motion 播放
+function handleLive2DMotionCommand(command) {
+    if (!command || typeof command.live2d_motion === 'undefined') {
+        console.warn("⚠ 未提供 live2d_motion 指令");
+        return;
+    }
+
+    const motionToPlay = command.live2d_motion;
+
+    if (!model || typeof model.motion !== 'function') {
+        console.error("❌ 模型未加载或不支持 motion 方法");
+        return;
+    }
+
+    console.log(`🎬 执行动作：${motionToPlay}`);
+    model.motion(motionToPlay, 0, PIXI.live2d.MotionPriority.FORCE);
+}
+
+    </script>
+</body>
+</html>

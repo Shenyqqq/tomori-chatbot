@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live2D Cubism 4 Model Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            background-color: transparent; /* Or any background you prefer */
+        }
+        canvas {
+            display: block; /* Remove extra space below canvas */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="live2d-canvas"></canvas>
+
+	<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.js"></script>
+
+    <script>
+        // 全局错误监听器
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("--- 全局错误捕获 (window.onerror) ---", {
+                message: message,
+                source: source,
+                lineno: lineno,
+                colno: colno,
+                error: error
+            });
+            return true;
+        };
+
+        window.addEventListener('unhandledrejection', event => {
+            console.error("--- 未处理的Promise拒绝 (unhandledrejection) ---", event.reason);
+        });
+
+        (async function() {
+            if (typeof PIXI === 'undefined' || typeof PIXI.live2d === 'undefined') {
+                console.error("CRITICAL: PIXI 或 PIXI.live2d 库未加载。请检查 <script> 标签引入。");
+                return;
+            }
+            // For Cubism 4+, live2d.min.js (Cubism 2.1 Core) is generally not needed and can be removed.
+            // PIXI-Live2D-Display's cubism4.js handles the Cubism 4 runtime internally.
+            console.log("DEBUG: Checking PIXI Live2D Display version for Cubism 4+.");
+
+            const app = new PIXI.Application({
+                view: document.getElementById('live2d-canvas'),
+                autoStart: true,
+                resizeTo: window,
+                backgroundAlpha: 0,
+            });
+
+            // Adjust this path to your Cubism 4+ model's model.json
+            // Make sure the animations folder (with Love.motion3.json) is relative to model.json
+            const modelPath = '/static/live2d_model/akari_vts/akari.model3.json';
+
+            let model = null;
+
+            try {
+                console.log(`[Loading] Attempting to load model from: ${modelPath}`);
+
+                model = await PIXI.live2d.Live2DModel.from(modelPath);
+
+                app.stage.addChild(model);
+                console.log('[Loaded] PIXI Live2D Model instance created and added to stage.');
+
+                model.scale.set(0.25);
+                model.anchor.set(0.5, 0.5);
+
+                function onResize() {
+                    if (model) {
+                        model.position.set(window.innerWidth / 2, window.innerHeight / 1.8);
+                    }
+                }
+                window.addEventListener('resize', onResize);
+                onResize();
+
+                // Bind model error event listener
+                model.on('error', (err) => {
+                    console.error('--- !!! Live2DModel "error" event triggered !!! ---', err);
+                });
+
+                // Bind motion start and end event listeners for Cubism 4
+                // Note: The parameters passed to motionStart/motionEnd might differ slightly from Cubism 2
+                model.on('motionStart', (motionName) => { // Cubism 4 motionStart might pass motion name directly
+                    console.log(`--- !!! Live2DModel "motionStart" event triggered !!! --- Motion: ${motionName}`);
+                });
+
+                model.on('motionEnd', (motionName) => { // Cubism 4 motionEnd might pass motion name directly
+                    console.log(`--- !!! Live2DModel "motionEnd" event triggered !!! --- Motion: ${motionName}`);
+                });
+
+                // 'load' event listener
+                model.on('load', () => {
+                    console.log('--- !!! Live2DModel "load" event triggered !!! ---');
+                    console.log('Model Motions (from "load" event):', model.motions); // Cubism 4 structure
+                    console.log('Model Expressions (from "load" event):', model.expressions); // Cubism 4 structure
+
+                    // Optionally play an idle motion or default expression after load
+                    if (model.motions && model.motions.Idle && model.motions.Idle.length > 0) {
+                        console.log("Action: Playing 'Idle' motion (from load event)...");
+                        model.motion('Idle', 0);
+                    }
+                });
+
+                console.log("Live2D Model successfully loaded (after await).");
+                console.log('DEBUG: Model Motions immediately after await:', model.motions);
+                console.log('DEBUG: Model Expressions immediately after await:', model.expressions);
+
+                // This function uses the pixi-live2d-display's higher-level .motion() method
+                function playMotion(motionGroup, index = 0, priority = PIXI.live2d.MotionPriority.NORMAL) {
+                    if (model && model.motions && model.motions[motionGroup] && model.motions[motionGroup].length > index) {
+                        console.log(`Action: Playing motion "${motionGroup}[${index}]".`);
+                        // The .motion() method is designed to handle Cubism 4 motions directly
+                        model.motion(motionGroup, index, priority);
+                        return true;
+                    } else {
+                        console.warn(`WARN: Motion group "${motionGroup}" or index ${index} not found.`);
+                    }
+                    return false;
+                }
+
+                // This function uses the pixi-live2d-display's higher-level .expression() method
+                function setExpression(expressionNameOrIndex) {
+                    if (model && model.expressions) {
+                        let expressionFound = false;
+                        if (typeof expressionNameOrIndex === 'string') {
+                            if (model.expressions[expressionNameOrIndex]) {
+                                console.log(`Action: Setting expression "${expressionNameOrIndex}".`);
+                                model.expression(expressionNameOrIndex);
+                                expressionFound = true;
+                            }
+                        } else if (typeof expressionNameOrIndex === 'number' && model.expressions[Object.keys(model.expressions)[expressionNameOrIndex]]) {
+                             const exprName = Object.keys(model.expressions)[expressionNameOrIndex];
+                             console.log(`Action: Setting expression "${exprName}" (by index).`);
+                             model.expression(exprName);
+                             expressionFound = true;
+                        }
+
+                        if (expressionFound) {
+                            return true;
+                        } else {
+                            console.warn(`WARN: Expression "${expressionNameOrIndex}" not found.`);
+                        }
+                    } else {
+                        console.warn("WARN: Expressions not available for setting.");
+                    }
+                    return false;
+                }
+
+                // Attempt to play "Love.motion3.json" after a short delay
+                // Assume 'Love' is the group name, and it's the first motion in that group (index 0)
+                // You might need to adjust 'Love' to the actual group name in your model.json if it's different.
+                setTimeout(() => {
+                    console.log("--- DEBUG: Attempting to play 'Love' motion after a short delay ---");
+                    // Verify if 'Love' motion group exists before playing
+                    if (model.motions && model.motions.Love && model.motions.Love.length > 0) {
+                        playMotion('Love', 0);
+                    } else {
+                        console.warn("WARN: 'Love' motion group not found in model.motions. Please check model.json and motion group name.");
+                        console.log("Available motion groups:", Object.keys(model.motions || {}));
+                    }
+                    console.log("DEBUG: PIXI Application Ticker Started:", app.ticker.started);
+                }, 500);
+
+                // Handle commands from parent window
+                function handleCommand(command) {
+                    if (!command || typeof command.live2d_motion === 'undefined') {
+                        console.warn("WARN: Invalid command received:", command);
+                        return;
+                    }
+                    const motionToPlay = command.live2d_motion;
+                    if (model) {
+                        // For Cubism 4, assuming motionToPlay is the group name
+                        if (playMotion(motionToPlay, 0, PIXI.live2d.MotionPriority.FORCE)) {
+                            console.log(`Action: Executing command: played motion "${motionToPlay}" successfully.`);
+                        } else {
+                            console.warn(`WARN: Command motion "${motionToPlay}" failed to play.`);
+                        }
+                    }
+                }
+
+                const targetNode = window.parent.document.querySelector('#live2d_command_stream');
+                if (targetNode) {
+                    const observer = new MutationObserver(mutationsList => {
+                        for (let mutation of mutationsList) {
+                            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                                const commandText = mutation.addedNodes[0].textContent;
+                                if (commandText) {
+                                    try {
+                                        console.log('DEBUG: Received command text:', commandText);
+                                        handleCommand(JSON.parse(commandText));
+                                    } catch (e) {
+                                        console.error('ERROR: Error parsing or handling command:', e);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    observer.observe(targetNode, {
+                        childList: true
+                    });
+                    console.log('DEBUG: MutationObserver for #live2d_command_stream initialized.');
+                } else {
+                    console.warn('WARN: Target node #live2d_command_stream not found in parent window.');
+                }
+
+                // Model click event for Cubism 4
+                model.on('hit', (hitAreas) => {
+                    console.log('User Interaction: Model hit areas:', hitAreas);
+                    if (hitAreas.includes('body')) {
+                        console.log("Action: Body hit! Trying to play 'Love' motion.");
+                        // Assuming 'Love' group exists for Cubism 4 model
+                        playMotion('Love', 0);
+                    } else if (hitAreas.includes('head')) {
+                        console.log("Action: Head hit! Trying to set 'Smile' expression.");
+                        // Assuming 'Smile' expression exists for Cubism 4 model
+                        setExpression('Smile');
+                    }
+                });
+
+            } catch (error) {
+                console.error("--- !!! CRITICAL ERROR: Failed to load Live2D model in catch block !!! ---", error);
+                if (error.response) {
+                    console.error("ERROR Details: HTTP Error Status:", error.response.status);
+                    console.error("ERROR Details: HTTP Error Response:", await error.response.text());
+                }
+            }
+        })();
+    </script>
+</body>
+</html>
