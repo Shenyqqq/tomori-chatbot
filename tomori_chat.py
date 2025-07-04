@@ -47,26 +47,24 @@ def format_chatml(system_prompt, rag_context, history, query):
 
 
 def chat_logic(query, history):
-    """
-    Gradio 的核心聊天处理函数。
-    """
     rag_context = get_rag_context(query)
     truncate_history = truncate_by_char_limit(history, max_chars=1200)
     prompt = format_chatml(system_prompt, rag_context, truncate_history, query)
 
-    # 流式生成回复
     response_text = ""
-    for token in stream_chat_response(prompt):  # 返回生成内容的stream
-        print(token, end="", flush=True)
+
+    # 每个 token 都 yield，一边生成一边返回
+    for token in stream_chat_response(prompt):
         response_text += token
+        # 暂时返回空指令（不触发 Live2D）
+        yield response_text, json.dumps({})  # 让聊天框刷新
 
-    # 回复生成完毕后，进行情绪分析并发送指令
+    # 回复结束后进行情绪识别
     motion_keyword = emotion_detect(response_text)
-
-    # 返回最终的完整回复和情绪指令
-    # 我们通过一个 JSON 字符串来传递指令，这样更具扩展性
-    command = json.dumps({"live2d_motion":motion_keyword})
+    command = json.dumps({"live2d_motion": motion_keyword})
+    # 再 yield 一次，附带最终指令
     yield response_text, command
+
 
 
 

@@ -4,7 +4,7 @@ import torch
 from threading import Thread
 from peft import PeftModel
 
-model_path = "Qwen/Qwen-7B-Chat-Int4"
+model_path = "Qwen/Qwen2.5-7B-Instruct-GPTQ-Int4"
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, pad_token="<|endoftext|>")
 model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto", trust_remote_code=True)
 model = PeftModel.from_pretrained(model, "./lora_model/checkpoint-70")
@@ -17,10 +17,13 @@ def stream_chat_response(prompt):
     generate_kwargs = dict(
         **inputs,
         streamer=streamer,
-        max_new_tokens=512,
+        max_new_tokens=128,
         do_sample=True,
         eos_token_id=tokenizer.convert_tokens_to_ids("<|im_end|>"),
-        temperature=0.7
+        temperature=0.7,
+        top_p=0.9,
+        repetition_penalty=1.2,
+        no_repeat_ngram_size=10
     )
 
     thread = Thread(target=model.generate, kwargs=generate_kwargs)

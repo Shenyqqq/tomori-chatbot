@@ -31,91 +31,97 @@ js_library_imports = """
 <script src="/static/js/logic.js"></script>
 """
 
-live2d_html_code = """
-<div id="live2d-container" style="width:100%; height:500px; position:relative;">
-  <canvas id="live2d-canvas" style="position:absolute; width:100%; height:100%; left:0; top:0;"></canvas>
-</div>
+js_script = """
+function() { // 添加了外层自执行函数的开括号
+    function setupBridge() {
+        const commandComponent = document.getElementById('live2d_command_stream');
+        const iframe = document.querySelector('iframe');
 
-<script type="text/javascript">
-(async function () {
-    // 动态加载 PIXI 和 Cubism2 脚本
-    const loadScript = (src) => new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = src;
-        s.onload = resolve;
-        s.onerror = reject;
-        document.body.appendChild(s);
-    });
-    await loadScript("https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js");
-    await loadScript("https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js");
-    await loadScript("https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js");
+        if (!commandComponent) {
+            console.log('[Gradio Parent] 正在等待指令组件 (#live2d_command_stream)...');
+        }
+        if (!iframe) {
+            console.log('[Gradio Parent] 正在等待 iFrame...');
+        }
 
-    // 模型加载
-    const modelPath = "/static/live2d_model/tomori/model.json";
-    const app = new PIXI.Application({
-        view: document.getElementById('live2d-canvas'),
-        autoStart: true,
-        resizeTo: window,
-        backgroundAlpha: 0,
-    });
+        if (commandComponent && iframe && iframe.contentWindow) {
+            const commandTextarea = commandComponent.querySelector('textarea');
+            if (commandTextarea) {
+                console.log('[Gradio Parent] ✅ 成功找到所有元素，正在附加监听器。');
 
-    const model = await PIXI.live2d.Live2DModel.from(modelPath, { cubism2: true });
-    app.stage.addChild(model);
+                const observer = new MutationObserver(() => {
+                    const command = commandTextarea.value;
+                    console.log('[Gradio Parent] 监听到指令变化，准备发送:', command);
 
-    model.scale.set(0.25);
-    model.anchor.set(0.5, 0.5);
-    model.position.set(window.innerWidth / 2, window.innerHeight / 1.8);
+                    if (command && command.trim() !== '{}' && command.trim() !== '') {
+                        iframe.contentWindow.postMessage(command, '*');
+                        console.log('[Gradio Parent] ✅ 指令已发送至 iFrame。');
+                    }
+                });
 
-    console.log("✅ Cubism2 模型加载成功");
+                observer.observe(commandTextarea, {
+                    attributes: true, childList: true, characterData: true, subtree: true
+                });
 
-    // 自动测试一个动作（可删）
-    setTimeout(() => {
-        model.motion("thinking02", 0, PIXI.live2d.MotionPriority.FORCE);
-    }, 1000);
+                console.log('[Gradio Parent] ✅ 通信桥梁已成功激活。');
+                return;
+            }
+        }
+        setTimeout(setupBridge, 200);
+    }
 
-    // 尝试绑定 Gradio 的 Textbox textarea（必须等 DOM 完成）
-    const tryBindCommandListener = () => {
-        const wrapper = document.querySelector('#live2d_command_stream');
-        if (!wrapper) return console.warn("⚠ #live2d_command_stream wrapper not found");
+    setupBridge();
 
-        const textarea = wrapper.querySelector('textarea');
-        if (!textarea) return console.warn("⚠ textarea not found inside wrapper");
+function scrollChatbotToBottom() {
+        // !!! 修正为直接使用 #chatbot 作为滚动目标 !!!
+        const chatbotMessagesContainer = document.getElementById('chatbot'); // 直接获取 #chatbot 元素
 
-        console.log("✅ Live2D 指令监听器绑定成功");
+        if (chatbotMessagesContainer) {
+            // 稍作延迟，确保DOM渲染完成，这对流式输出尤其有用
+            setTimeout(() => {
+                chatbotMessagesContainer.scrollTop = chatbotMessagesContainer.scrollHeight;
+                // console.log('[Gradio JS] Chatbot 已尝试滚动。'); // 用于调试
+            }, 50); // 50毫秒的延迟
+        } else {
+            // console.log('[Gradio JS] 错误：未找到 Chatbot 滚动容器！'); // 用于调试
+        }
+    }
 
-        textarea.addEventListener('input', () => {
-            const val = textarea.value?.trim();
-            if (!val) return;
-            try {
-                const command = JSON.parse(val);
-                if (command.live2d_motion) {
-                    console.log("🎬 执行动作：", command.live2d_motion);
-                    model.motion(command.live2d_motion, 0, PIXI.live2d.MotionPriority.FORCE);
+    const chatbotElement = document.getElementById('chatbot'); // 这依然是 #chatbot 元素
+
+    if (chatbotElement) {
+        const observer = new MutationObserver(function(mutationsList) {
+            for (const mutation of mutationsList) {
+                // 检查是否有新的子节点（即新消息）被添加到聊天机器人中
+                // 观察 bubble-wrap 的子节点变化更准确，因为消息直接添加到它里面
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // console.log('[Gradio JS] 检测到 Chatbot 内容变化。'); // 用于调试
+                    scrollChatbotToBottom();
                 }
-            } catch (e) {
-                console.error("❌ 无法解析指令：", val, e);
             }
         });
-    };
 
-    // 等待 Gradio 渲染完成后尝试绑定 textarea
-    let retries = 0;
-    const pollInterval = setInterval(() => {
-        tryBindCommandListener();
-        retries++;
-        if (document.querySelector('#live2d_command_stream textarea') || retries > 20) {
-            clearInterval(pollInterval);
+        // 观察 #chatbot 内部的 bubble-wrap 元素，因为实际的消息是添加到 bubble-wrap 内部的
+        // 如果直接观察 #chatbot，它可能只在它的直接子元素变化时触发，而消息在更深的层次
+        const bubbleWrap = chatbotElement.querySelector('.bubble-wrap.svelte-1nyobg5');
+        if (bubbleWrap) {
+            observer.observe(bubbleWrap, { childList: true, subtree: true });
+        } else {
+            // Fallback: 如果 bubble-wrap 找不到，就观察整个 chatbotElement
+            // console.log('[Gradio JS] 未找到 .bubble-wrap，将观察整个 #chatbot 元素。');
+            observer.observe(chatbotElement, { childList: true, subtree: true });
         }
-    }, 500);
-})();
-</script>
-"""
 
+        // 页面加载时进行一次初始滚动，防止已有历史消息
+        scrollChatbotToBottom();
+    }
+}
+"""
 # ==============================================================================
 # 5. Gradio 应用界面
 # ==============================================================================
 
-with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color: #f0f4f8;}") as demo:
+with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color: #f0f4f8;}",js=js_script) as demo:
     gr.Markdown("# 高松灯 Live2D 聊天机器人")
     gr.Markdown("和灯聊天，看看她的反应吧！")
 
@@ -138,7 +144,8 @@ with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color:
                 [],
                 elem_id="chatbot",
                 bubble_full_width=False,
-                height=600
+                height=600,
+                autoscroll=True
             )
             chat_input = gr.Textbox(
                 show_label=False,
@@ -148,9 +155,12 @@ with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color:
 
 
     def predict(query, history):
+        if not query.strip():
+            yield history, json.dumps({}), ""
+            return
         history.append([query, None])
         # 预先更新UI，显示用户输入
-        yield history, json.dumps({})
+        yield history, json.dumps({}), ""
 
         # 流式处理聊天逻辑
         response = ""
@@ -165,12 +175,11 @@ with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color:
                 except Exception as e:
                     print("❌ 非法 JSON 指令，强制回退:", command)
                     command = json.dumps({})
-            # 流式更新聊天气泡和发送指令
-            print("✅ 向前端发送指令：", command)
-            yield history, command
+            yield history, command, ""
+            time.sleep(0.05)
 
 
-    chat_input.submit(predict, [chat_input, chatbot], [chatbot, live2d_command_stream])
+    chat_input.submit(predict, [chat_input, chatbot], [chatbot, live2d_command_stream, chat_input])
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
