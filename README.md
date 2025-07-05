@@ -19,6 +19,8 @@ The project integrates a LoRA-tuned large language model with a Retrieval-Augmen
 ## Demo
 
 [Bilibili](https://www.bilibili.com/video/BV1AU39zzESa/)
+<img width="1142" alt="image" src="https://github.com/user-attachments/assets/a16e57fc-0cdd-4fdc-8af6-b19df1b55230" />
+
 
 ## System Architecture
 
