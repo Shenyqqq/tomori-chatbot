@@ -4,24 +4,20 @@ An AI chatbot designed to simulate the character Takamatsu Tomori from *BanG Dre
 
 The project integrates a LoRA-tuned large language model with a Retrieval-Augmented Generation (RAG) system for context-aware responses. The front end is a Gradio web UI which features a Live2D model whose expressions are dynamically controlled by the language model's output.
 
-[](https://github.com/Shenyqqq/tomori-chatbot)
-[](https://www.google.com/search?q=https://github.com/Shenyqqq/tomori-chatbot/blob/main/LICENSE)
-[](https://www.python.org/downloads/)
-
+[github](https://github.com/Shenyqqq/tomori-chatbot)
+[hugging face](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
 -----
 
 ## Features
 
-  * **Character-Specific Dialogue**: Generates text in the persona of a specific character using a LoRA-finetuned Qwen2.5-7B-int4 model.
+  * **Character-Specific Dialogue**: Generates text in the persona of a specific character using a LoRA-finetuned Qwen2.5-7B-Instruct-GPTQ-Int4 model.
   * **Retrieval-Augmented Generation (RAG)**: Enhances responses with relevant context by retrieving information from a vector knowledge base before generation.
   * **Dynamic Live2D Expressions**: Parses the generated text to determine an emotional sentiment, which then triggers the corresponding animation in a Live2D model rendered on the web UI.
   * **Web Interface**: Built with Gradio for straightforward user interaction and demonstration.
 
 ## Demo
 
-*(A screenshot or GIF of the running application is recommended here.)*
-
-\![Demo Screenshot/GIF]([Link to your screenshot or GIF])
+[Bilibili](https://www.bilibili.com/video/BV1AU39zzESa/)
 
 ## System Architecture
 
@@ -38,12 +34,12 @@ The application operates on the following data flow:
 
 ## Technology Stack
 
-  * **LLM**: `Qwen2.5-7B-int4`
+  * **LLM**: `Qwen2.5-7B-Instruct-GPTQ-Int4`
   * **Fine-tuning**: `LoRA (Low-Rank Adaptation)`
   * **Backend**: `Python`, `Gradio`
   * **Frontend**: `HTML`, `JavaScript`
   * **Animation**: `Live2D Cubism SDK for Web`
-  * **RAG**: Vector database library such as `FAISS` or `ChromaDB`.
+  * **RAG**: Vector database library based on `ChromaDB`.
 
 ## Data and Fine-tuning
 
@@ -76,26 +72,26 @@ For efficiency, the **LLM-Augmented QA dataset** was repurposed as the knowledge
     # It is recommended to use a virtual environment
     python -m venv venv
     source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
     pip install -r requirements.txt
     ```
 
-3.  **Download required models:**
-
-      * Place the base LLM (e.g., `Qwen2.5-7B-Chat-GGUF`) in the `models/` directory.
-      * Place your trained LoRA adapter weights in the `lora_weights/` directory.
-      * Place the Live2D model assets (`.moc3`, `.model3.json`, textures) in the `static/live2d/` directory.
-      * Ensure your RAG vector database/index file is accessible at the path configured in the application.
-
-4.  **Run the application:**
-
+3.  **Run the application:**
+    First build a vector DB
     ```bash
+    python build_VecDB.py
+    ```
+    Then run the app.py
+     ```bash
     python app.py
     ```
 
     The web interface will be available at `http://127.0.0.1:7860`.
 
+    Or extract the release .zip file. Then run the setup.bat to build the environment, and run start.bat to launch the chatbot.
+
 ## Future Development
 
-  * **TTS Integration**: Implement a Text-to-Speech model for voice output.
-  * **Stateful Memory**: Add a mechanism for long-term memory to maintain conversation context across sessions.
-  * **Multi-Modal Input**: Extend functionality to accept image inputs.
+  * **TTS Integration**: Implement a Text-to-Speech model for voice output, basically using GPT-Sovits.
+  * **Choice of live2D model**: Add a button to select different live2d model.
+  * **Other character lora-finetuned**: Create other character chatbot in bangdream.
