@@ -4,8 +4,8 @@ An AI chatbot designed to simulate the character Takamatsu Tomori from *BanG Dre
 
 The project integrates a LoRA-tuned large language model with a Retrieval-Augmented Generation (RAG) system for context-aware responses. The front end is a Gradio web UI which features a Live2D model whose expressions are dynamically controlled by the language model's output.
 
-[github](https://github.com/Shenyqqq/tomori-chatbot)
-[hugging face](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
+
+[🤗hugging face model](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
 -----
 
 ## Features
