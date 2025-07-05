@@ -1,3 +1,4 @@
+[中文](https://github.com/Shenyqqq/tomori-chatbot/blob/master/README.zh.md)[English](https://github.com/Shenyqqq/tomori-chatbot/blob/master/README.md)
 # tomori-chatbot
 
 An AI chatbot designed to simulate the character Takamatsu Tomori from *BanG Dream\! It's MyGO\!\!\!\!\!*.
