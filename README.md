@@ -5,8 +5,6 @@ An AI chatbot designed to simulate the character Takamatsu Tomori from *BanG Dre
 
 The project integrates a LoRA-tuned large language model with a Retrieval-Augmented Generation (RAG) system for context-aware responses. The front end is a Gradio web UI which features a Live2D model whose expressions are dynamically controlled by the language model's output.
 
-
-[🤗hugging face model](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
 -----
 
 ## Features
@@ -80,6 +78,10 @@ For efficiency, the **LLM-Augmented QA dataset** was repurposed as the knowledge
     ```
 
 3.  **Run the application:**
+
+You have to download the lora model from [🤗hugging face model](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora) named `checkpoint-70`
+Put the `checkpoint-70` on dir `lora_model`.
+
     First build a vector DB
     ```bash
     python build_VecDB.py
