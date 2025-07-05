@@ -1,0 +1,9 @@
+chromadb==1.0.13
+gradio==5.30.0
+peft==0.15.2
+transformers==4.52.4
+optimum==1.26.1
+gptqmodel==2.2.0
+triton-windows<3.3
+accelerate==1.8.1
+sentence-transformers==4.1.0
