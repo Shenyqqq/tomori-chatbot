@@ -8,7 +8,6 @@
 
 本项目集成了经过 LoRA 微调的大型语言模型与检索增强生成（RAG）系统，以实现上下文感知的响应。前端是 Gradio Web UI，其中包含一个 Live2D 模型，其表情会根据语言模型的输出动态控制。
 
-[🤗Hugging Face 模型](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
 
 -----
 
@@ -22,6 +21,7 @@
 ## 演示
 
 [Bilibili](https://www.bilibili.com/video/BV1AU39zzESa/)
+![alt text](https://github.com/Shenyqqq/tomori-chatbot/blob/master/static/demo.gif)
 
 ## 系统架构
 
@@ -81,6 +81,10 @@ LoRA 适配器在一个复合数据集上进行训练：
     ```
 
 3.  **运行应用程序：**
+
+你必须在Huggingface上下载lora模型[🤗Hugging Face 模型](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
+
+找到名为`checkpoint-70`的文件，下载并放入目录`lora_model`当中
 
     首先构建向量数据库：
 
