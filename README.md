@@ -17,7 +17,7 @@ The project integrates a LoRA-tuned large language model with a Retrieval-Augmen
 ## Demo
 
 [Bilibili](https://www.bilibili.com/video/BV1AU39zzESa/)
-
+![alt text](https://github.com/Shenyqqq/tomori-chatbot/blob/master/static/demo.gif)
 
 
 ## System Architecture
