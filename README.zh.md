@@ -30,7 +30,7 @@
 *(建议使用简单的框图来可视化此流程。)*
 
 1.  **输入**：用户通过 Gradio Web 界面提交文本字符串。
-2.  **检索**：输入字符串被转换为嵌入向量，并用于对预构建的向量数据库（FAISS/ChromaDB）执行相似性搜索。检索出 top-k 结果作为上下文。
+2.  **检索**：输入字符串被转换为嵌入向量，并用于对预构建的向量数据库（ChromaDB）执行相似性搜索。检索出 top-k 结果作为上下文。
 3.  **提示构建**：使用包含系统角色、检索到的上下文和用户原始输入的模板，组装最终提示。
 4.  **生成**：构建好的提示传递给 Qwen2.5-7B 模型与附加的 LoRA 适配器。模型生成响应文本。
 5.  **情感分析**：生成的文本通过一个轻量级函数（例如，基于关键词的分类器）进行处理，将其映射到预定义的情感类别（例如，`neutral`、`happy`、`sad`）。
@@ -82,9 +82,9 @@ LoRA 适配器在一个复合数据集上进行训练：
 
 3.  **运行应用程序：**
 
-你必须在Huggingface上下载lora模型[🤗Hugging Face 模型](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
+    你必须在Huggingface上下载lora模型[🤗Hugging Face 模型](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora)
 
-找到名为`checkpoint-70`的文件，下载并放入目录`lora_model`当中
+    找到名为`checkpoint-70`的文件，下载并放入目录`lora_model`当中
 
     首先构建向量数据库：
 
