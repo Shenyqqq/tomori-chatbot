@@ -27,7 +27,7 @@ The application operates on the following data flow:
 *(A simple block diagram is recommended to visualize this flow.)*
 
 1.  **Input**: The user submits a text string through the Gradio web interface.
-2.  **Retrieval**: The input string is converted to an embedding and used to perform a similarity search against a pre-built vector database (FAISS/ChromaDB). The top-k results are retrieved as context.
+2.  **Retrieval**: The input string is converted to an embedding and used to perform a similarity search against a pre-built vector database (ChromaDB). The top-k results are retrieved as context.
 3.  **Prompt Construction**: A final prompt is assembled using a template that includes the system persona, the retrieved context, and the user's original input.
 4.  **Generation**: The constructed prompt is passed to the Qwen2.5-7B model with the attached LoRA adapter. The model generates the response text.
 5.  **Sentiment Analysis**: The generated text is processed by a lightweight function (e.g., keyword-based classifier) to map it to a predefined emotion category (e.g., `neutral`, `happy`, `sad`).
@@ -83,10 +83,13 @@ You have to download the lora model from [🤗hugging face model](https://huggin
 Put the `checkpoint-70` on dir `lora_model`.
 
     First build a vector DB
+   
     ```bash
     python build_VecDB.py
     ```
+    
     Then run the app.py
+    
      ```bash
     python app.py
     ```
