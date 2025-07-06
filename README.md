@@ -79,8 +79,8 @@ For efficiency, the **LLM-Augmented QA dataset** was repurposed as the knowledge
 
 3.  **Run the application:**
 
-You have to download the lora model from [🤗hugging face model](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora) named `checkpoint-70`
-Put the `checkpoint-70` on dir `lora_model`.
+    You have to download the lora model from [🤗hugging face model](https://huggingface.co/gumigumi/qwen2.5-7B-Int4-tomori_lora) named `checkpoint-70`
+    Put the `checkpoint-70` on dir `lora_model`.
 
     First build a vector DB
    
@@ -97,6 +97,7 @@ Put the `checkpoint-70` on dir `lora_model`.
     The web interface will be available at `http://127.0.0.1:7860`.
 
     Or extract the release .zip file. Then run the setup.bat to build the environment, and run start.bat to launch the chatbot.
+    
 
 ## Future Development
 
