@@ -24,8 +24,6 @@ The project integrates a LoRA-tuned large language model with a Retrieval-Augmen
 
 The application operates on the following data flow:
 
-*(A simple block diagram is recommended to visualize this flow.)*
-
 1.  **Input**: The user submits a text string through the Gradio web interface.
 2.  **Retrieval**: The input string is converted to an embedding and used to perform a similarity search against a pre-built vector database (ChromaDB). The top-k results are retrieved as context.
 3.  **Prompt Construction**: A final prompt is assembled using a template that includes the system persona, the retrieved context, and the user's original input.
